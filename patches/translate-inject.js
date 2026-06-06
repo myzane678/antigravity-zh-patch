@@ -13,7 +13,59 @@
     'Projects': '项目',
     'Conversations': '对话',
     'Initializing Coding Session': '正在初始化编码会话',
-    'Install IDE': '安装 IDE'
+    'Project Initialization and Setup': '项目初始化和设置',
+    'Initial Greeting and Setup': '初始问候和设置',
+    'Install IDE': '安装 IDE',
+    'Settings': '设置',
+    'General': '通用',
+    'Account': '账户',
+    'Permissions': '权限',
+    'Appearance': '外观',
+    'Models': '模型',
+    'Customizations': '自定义',
+    'Browser': '浏览器',
+    'App': '应用',
+    'Not in Project': '不在项目中',
+    'Shortcuts': '快捷键',
+    'Provide Feedback': '提供反馈',
+    'Agent Settings': '智能体设置',
+    'Agent Behavior': '智能体行为',
+    'Security Preset': '安全预设',
+    'Artifact Review Policy': '制品审阅策略',
+    'Local Permissions': '本地权限',
+    'File Access Rules': '文件访问规则',
+    'Network Access Rules': '网络访问规则',
+    'Terminal Commands': '终端命令',
+    'Commands Outside Sandbox': '沙盒外命令',
+    'MCP Tools': 'MCP 工具',
+    'Open': '打开',
+    'Default': '默认',
+    'Always Ask': '总是询问',
+    'Learn more.': '了解更多。',
+    'Learn more about': '了解更多：',
+    'Agent settings and permissions for conversations outside of projects.': '项目外对话的智能体设置和权限。',
+    'Choose a predefined security preset for the agent. This controls terminal auto-execution policy, and file access policy.': '为智能体选择预设安全策略。它会控制终端自动执行策略和文件访问策略。',
+    'Specifies Agent\'s behavior when asking for review on artifacts, which are documents it creates to enable a richer conversation experience.': '指定智能体请求审阅制品时的行为。制品是它创建的文档，用于提供更丰富的对话体验。',
+    'Inherits from global settings. Local permissions have higher priority.': '继承自全局设置。本地权限具有更高优先级。',
+    'Configure allowed and denied paths for file reads and writes.': '配置允许和拒绝文件读写的路径。',
+    'Configure allowed and denied URLs for reading.': '配置允许和拒绝读取的 URL。',
+    'Configure allowed terminal commands.': '配置允许的终端命令。',
+    'Configure allowed commands outside the sandbox.': '配置允许在沙盒外执行的命令。',
+    'Chat Settings': '对话设置',
+    'Detailed Agent Chat': '详细代理聊天',
+    'Show and save intermediate thinking steps': '显示并保存中间思维步骤',
+    'Light Theme': '浅色主题',
+    'Dark Theme': '深色主题',
+    'Light': '浅色',
+    'Preset': '预设',
+    'Default Light': '默认浅色',
+    'Default Dark': '默认深色',
+    'Background': '背景',
+    'Foreground': '前景',
+    'Accent': '强调色',
+    'Discovering Fun Websites': '发现有趣网站',
+    'English Response Request': '英文回复请求',
+    'Ask anything, @ to mention, / for actions': '提出任何问题，@提及，/采取行动'
   };
 
   function getMappedText(text) {
@@ -94,6 +146,24 @@
     return false;
   }
 
+  function isAssistantMessage(node) {
+    var el = node.nodeType === 3 ? node.parentElement : node;
+    while (el && el !== document.body) {
+      var role = el.getAttribute('data-sender') || el.getAttribute('data-role') || el.getAttribute('data-message-role');
+      if (role && /assistant|model|bot|agent/i.test(role)) return true;
+      if (role && /user|human/i.test(role)) return false;
+
+      var cls = (el.className || '');
+      if (typeof cls === 'string') {
+        if (/\bassistant\b/.test(cls) || /\bmodel\b/.test(cls) || /\bresponse\b/.test(cls)) return true;
+        if (/\buser\b/.test(cls) && !/\bassistant\b/.test(cls)) return false;
+      }
+
+      el = el.parentElement;
+    }
+    return false;
+  }
+
   // 是否在输入框 / 可编辑区域内
   function isEditable(node) {
     var el = node.nodeType === 3 ? node.parentElement : node;
@@ -129,6 +199,47 @@
     userWantsEnglish = false;
   }
 
+  function hasNoTranslate(node) {
+    var el = node.nodeType === 3 ? node.parentElement : node;
+    while (el && el !== document.body) {
+      var flag = el.getAttribute && el.getAttribute('translate');
+      if (flag && flag.toLowerCase() === 'no') return true;
+      if (flag && flag.toLowerCase() === 'yes') return false;
+      el = el.parentElement;
+    }
+    return false;
+  }
+
+  function isNonTranslatableText(text) {
+    if (!text) return false;
+    var t = text.trim();
+    if (!t) return false;
+
+    // 邮箱、URL、域名、IP、localhost 不译
+    if (/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(t)) return true;
+    if (/\b(?:https?:\/\/|file:\/\/|mailto:|www\.)\S+/i.test(t)) return true;
+    if (/\b(?:localhost|127\.0\.0\.1|0\.0\.0\.0)(?::\d+)?\b/i.test(t)) return true;
+    if (/\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:com|net|org|io|ai|dev|app|cn|co|me|edu|gov|cloud|local|localhost)\b/i.test(t)) return true;
+
+    // 文件路径、仓库路径、文件名不译
+    if (/^[a-zA-Z]:[\\/]/.test(t)) return true;
+    if (/(^|\s)(?:~\/|\.\.?\/|\/)[^\s]+/.test(t)) return true;
+    if (/^[\w.-]+\/[\w.-]+$/.test(t)) return true;
+    if (/\b[\w.-]+\.(?:json|js|ts|tsx|jsx|md|txt|yaml|yml|asar|exe|dll|png|jpg|jpeg|svg|css|html|py|sh|bat|cmd|ps1|lock|log|env)\b/i.test(t)) return true;
+
+    // 命令行片段不译
+    if (/^(?:npm|npx|pnpm|yarn|git|node|python|pip|curl|powershell|pwsh|cmd|docker|kubectl|ssh|scp|claude|asar)\b/i.test(t)) return true;
+
+    // 用户名、标签、代码标识符、短 token 不译
+    if (/^[@#][\w.-]+$/.test(t)) return true;
+    if (/^[a-z]+[A-Z][A-Za-z0-9]*$/.test(t)) return true;
+    if (/^[A-Z0-9_]{2,}$/.test(t)) return true;
+    if (/^[A-Za-z0-9]+[-_][A-Za-z0-9_-]+$/.test(t)) return true;
+    if (!/\s/.test(t) && /[\\/@:_$]/.test(t)) return true;
+
+    return false;
+  }
+
   // ========== 翻译判定 ==========
 
   // 综合判定：文本是否需要翻译
@@ -136,9 +247,9 @@
     if (!text || text.length < 2) return false;
     var t = text.trim();
 
-    // 纯数字 / 纯符号 / URL 不译
+    // 纯数字 / 纯符号 / 标识类文本不译
     if (!/[a-zA-Z]/.test(t)) return false;
-    if (/^(https?:\/\/|www\.|file:\/\/)/i.test(t)) return false;
+    if (isNonTranslatableText(t)) return false;
 
     // 模型名称不译
     if (isModelName(t)) return false;
@@ -188,11 +299,13 @@
     var valid = items.filter(function(n) {
       if (!n.parentNode) return false;           // 已从 DOM 移除
       if (n[MARKER]) return false;               // 已翻译过
-      if (userWantsEnglish) return false;         // 用户要英文回答，全跳过
-      if (isUserMessage(n)) return false;         // 用户自己发的
-      if (isEditable(n)) return false;            // 输入框内
       var mapped = getMappedText(n.textContent);
       if (mapped) return true;
+      if (userWantsEnglish && isAssistantMessage(n)) return false; // 用户要英文回答，只跳过助手回复自动翻译
+      if (isUserMessage(n)) return false;         // 用户自己发的
+      if (isEditable(n)) return false;            // 输入框内
+      if (hasNoTranslate(n)) return false;        // translate=no 不译
+      if (isNonTranslatableText(n.textContent)) return false; // 邮箱、域名、路径等不译
       if (isModelName(n.textContent.trim())) return false;  // 模型名
       if (isProperNoun(n.textContent.trim())) return false; // 专有名词
       return needsTL(n.textContent);
@@ -235,6 +348,7 @@
     var tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode: function(n) {
         if (n[MARKER]) return NodeFilter.FILTER_REJECT;
+        if (hasNoTranslate(n)) return NodeFilter.FILTER_REJECT;
         return getMappedText(n.textContent) || needsTL(n.textContent) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
       }
     });
@@ -243,9 +357,29 @@
     return nodes;
   }
 
+  function translateAttrs(root) {
+    if (!root || root.nodeType !== 1) return;
+    var attrs = ['placeholder', 'title', 'aria-label'];
+    var nodes = [root];
+    if (root.querySelectorAll) {
+      Array.prototype.push.apply(nodes, root.querySelectorAll('[placeholder], [title], [aria-label]'));
+    }
+    for (var i = 0; i < nodes.length; i++) {
+      for (var j = 0; j < attrs.length; j++) {
+        var attr = attrs[j];
+        if (hasNoTranslate(nodes[i])) continue;
+        var value = nodes[i].getAttribute && nodes[i].getAttribute(attr);
+        if (isNonTranslatableText(value)) continue;
+        var mapped = value && getMappedText(value);
+        if (mapped) nodes[i].setAttribute(attr, mapped);
+      }
+    }
+  }
+
   // ========== 启动 ==========
 
   function start() {
+    translateAttrs(document.body);
     walk(document.body).forEach(enq);
 
     new MutationObserver(function(mutations) {
@@ -254,6 +388,7 @@
         for (var j = 0; j < m.addedNodes.length; j++) {
           var n = m.addedNodes[j];
           if (n.nodeType === 1) {
+            translateAttrs(n);
             walk(n).forEach(enq);
           } else if (n.nodeType === 3) {
             enq(n);
