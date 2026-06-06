@@ -4,15 +4,35 @@
 
 它会在页面加载完成后注入翻译脚本，将部分英文界面文案和英文回复自动翻译为中文。
 
+## 当前版本
+
+- 补丁版本：`v2.0.0`
+- 已确认适配：Antigravity `2.0.11`
+- 核心文件：
+  - `patches/translate-inject.js`
+  - 目标应用中的 `dist/utils.js` 注入逻辑
+
 ## 功能
 
 - 自动翻译英文 UI 文案
 - 自动翻译页面中新增的英文文本
+- 翻译 `placeholder`、`title`、`aria-label` 中的固定 UI 文案
 - 跳过用户自己输入的消息
 - 跳过输入框、可编辑区域
-- 跳过模型名称、专有名词、URL 和疑似代码片段
-- 当用户明确要求英文回答时，暂停自动翻译
+- 跳过 `translate="no"` 标记区域
+- 跳过模型名称、专有名词、URL、文件路径、命令行片段和疑似代码片段
+- 当用户明确要求英文回答时，只暂停助手回复的自动翻译
 - 对常见固定 UI 文案使用本地映射，减少翻译请求
+
+## v2.0.0 更新重点
+
+- 适配 Antigravity `2.0.11`
+- 扩充固定 UI 文案映射
+- 增加 `Project Initialization and Setup`、`Initial Greeting and Setup` 等常见文案
+- 增强不可翻译内容识别，包括邮箱、域名、IP、路径、文件名、命令行片段等
+- 支持固定文案属性翻译：`placeholder`、`title`、`aria-label`
+- 支持 `translate="no"` 跳过翻译
+- 优化“用户要求英文回答”逻辑：只跳过助手回复，不影响普通 UI 文案映射
 
 ## 本项目不包含什么
 
@@ -84,6 +104,10 @@ translate-inject.js
 - 翻译使用 Google Translate 的非正式接口，可能不稳定
 - 自动翻译可能影响页面布局或复制文本内容
 - 不保证适配所有版本
+
+## 版本记录
+
+见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## License
 

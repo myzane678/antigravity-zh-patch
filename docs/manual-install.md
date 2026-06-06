@@ -2,6 +2,16 @@
 
 本文说明如何手动安装 Antigravity 中文自动翻译补丁。
 
+## 适配版本
+
+当前补丁版本：`v2.0.0`
+
+已确认适配：
+
+```text
+Antigravity 2.0.11
+```
+
 ## 重要提醒
 
 不要照抄作者本机路径。每个人的真实安装位置可能不同。
@@ -13,6 +23,13 @@ app-extracted/dist
 ```
 
 只要这个目录里存在 `utils.js`，就可以作为补丁目标目录。
+
+本补丁的最小闭环是：
+
+```text
+translate-inject.js  # 翻译脚本本体
+utils.js             # 负责把翻译脚本注入页面
+```
 
 ## 第一步：找到目标 dist 目录
 
@@ -125,6 +142,33 @@ win.webContents.on('did-finish-load', () => {
 完全退出 Antigravity，然后重新打开。
 
 如果页面中的英文 UI 或英文回复被翻译为中文，说明补丁已经生效。
+
+## 如何判断是否装成功
+
+可以检查以下几项：
+
+1. 目标目录里同时存在：
+
+```text
+utils.js
+translate-inject.js
+```
+
+2. `utils.js` 中能搜到：
+
+```text
+translate-inject.js
+executeJavaScript
+```
+
+3. 打开 Antigravity 后，常见 UI 文案会显示为中文，例如：
+
+```text
+New Conversation -> 新建对话
+Settings -> 设置
+Permissions -> 权限
+Ask anything, @ to mention, / for actions -> 提出任何问题，@提及，/采取行动
+```
 
 ## 卸载
 
