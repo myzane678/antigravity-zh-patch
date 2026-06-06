@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+
+# original app files - do not commit extracted application code
+app-extracted/
+dist/
+antigravity/
+
+# packaged binaries and archives
+*.asar
+*.exe
+*.dll
+*.dylib
+*.so
+*.pak
+*.bin
+*.zip
+*.7z
+*.rar
+
+# backups and temporary files
+*.bak
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
+
+# editor
+.vscode/
+.idea/
