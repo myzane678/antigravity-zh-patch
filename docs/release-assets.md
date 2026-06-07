@@ -1,145 +1,150 @@
-# GitHub Release 附件说明
+# Antigravity 中文界面补丁 v3.0.1
 
-本文说明发布 GitHub Release 时建议上传的附件内容。
+## 本次版本定位
 
-## 建议附件名称
+`v3.0.1` 不是大功能扩张版本，而是一次**边界收缩 + 稳定性提升 + 文档增强**的小版本更新。
 
-```text
-antigravity-zh-patch-v2.0.0.zip
-```
+这一版的核心目标是：
 
-## 建议附件内容
+> **把补丁重新定位为“优先翻译 UI 的中文界面补丁”，而不是自动翻译所有正文内容的通用翻译器。**
 
-```text
-antigravity-zh-patch-v2.0.0/
-├─ patches/
-│  └─ translate-inject.js
-├─ docs/
-│  └─ manual-install.md
-├─ README.md
-├─ CHANGELOG.md
-└─ LICENSE
-```
+---
 
-## 不要放入附件的内容
+## 这次更新了什么
 
-请不要在 Release 附件中包含以下内容：
+### 1. 产品定位收缩为 UI-only
 
-```text
-app.asar
-app.asar.unpacked/
-app-extracted/
-dist/
-Antigravity 安装包
-language_server.exe
-任何官方二进制文件
-```
+从 `v3.0.1` 开始，补丁默认：
 
-原因：本项目只发布中文自动翻译补丁，不分发 Antigravity 原应用代码、安装包、资源文件或二进制文件。
+- 翻译固定英文 UI 文案
+- 翻译常见按钮、设置项、输入提示等界面文案
+- **不翻译用户消息正文**
+- **不翻译 AI 回复正文**
 
-## Release 附件说明文案
+这样做的原因是：
 
-创建 Release 时，可以在下载说明中使用以下文案：
+- AI 回复通常会跟随用户语言
+- 正文里常包含代码、命令、路径、报错原文、术语
+- 自动翻译正文更容易误伤技术内容
 
-```markdown
-## 下载说明
+新定位更稳，也更容易维护。
 
-请下载：
+---
 
-- `antigravity-zh-patch-v2.0.0.zip`
+### 2. 移除正文自动翻译与在线翻译依赖
 
-压缩包内包含：
+`v3.0.1` 删除了正文自动翻译相关逻辑，包括：
 
-- `patches/translate-inject.js`：自动翻译脚本
-- `docs/manual-install.md`：手动安装说明
-- `README.md`：项目说明
-- `CHANGELOG.md`：版本更新记录
-- `LICENSE`：开源许可证
+- 在线翻译请求
+- 正文扫描与批处理翻译
+- 用户/助手消息识别逻辑
+- “用户要求英文回答”相关判定
 
-本发布包不包含 Antigravity 原应用文件、安装包、`app.asar`、解包后的 `dist` 目录或任何官方二进制文件。
+现在补丁主要依赖本地 `UI_TEXT_MAP` 做固定 UI 文案映射。
 
-## 使用方式
+好处是：
 
-1. 解压 `antigravity-zh-patch-v2.0.0.zip`
-2. 按照 `docs/manual-install.md` 操作
-3. 将 `patches/translate-inject.js` 复制到 Antigravity 解包后的 `dist` 目录
-4. 修改目标应用中的 `utils.js`，加入自动翻译脚本注入逻辑
+- 减少误翻译
+- 减少复杂度
+- 不再依赖在线翻译接口稳定性
+- 更适合作为长期维护的本地界面补丁
+
+---
+
+### 3. 强化路径判断与 `app.asar` 路线说明
+
+这次文档专门加强了这类常见误区的说明：
+
+- 不要只看“目录像不像文档”
+- 不要默认 `.gemini/.../app-extracted/dist` 一定是主生效路径
+- 如果改 `.gemini/...` 不生效，要继续排查 `resources/app.asar`
+
+文档现在明确支持两类安装形态：
+
+1. `app-extracted/dist`
+2. `resources/app.asar`
+
+并强调：
+
+> **最终要以“改完并完全重启后是否真的生效”为准。**
+
+---
+
+### 4. 增加安装成功自检清单
+
+README 和安装文档中现在都加入了更明确的自检项，例如：
+
+- `utils.js` 与 `translate-inject.js` 是否同目录存在
+- `utils.js` 是否包含注入逻辑
+- 如果走 `app.asar` 路线，是否已经重新打包覆盖回去
+- 是否已完整退出并重启程序
+- 固定 UI 文案是否成功变中文
+
+这能明显减少“改了但不知道为什么没生效”的排查成本。
+
+---
+
+### 5. 新增独立排障文档
+
+新增文档：
+
+- `docs/troubleshooting.md`
+
+专门集中回答：
+
+- 为什么改了 `.gemini/...` 不生效
+- 为什么只解包不回包没用
+- 为什么只关窗口不算真正重启
+- 为什么更新后补丁会失效
+- 如何快速判断当前版本更可能吃哪套资源
+
+---
+
+### 6. 整理 `UI_TEXT_MAP`
+
+脚本中的固定文案映射已经按类别重新整理，后续更容易维护和补充。
+
+目前映射已按以下方向归类：
+
+- 导航与通用入口
+- 状态与初始化
+- 设置分类
+- 主题与外观
+- 说明与帮助
+- 输入区相关
+
+这让后续继续补文案时更清晰，不容易越改越乱。
+
+---
+
+## 适合谁升级到 v3.0.1
+
+如果你：
+
+- 主要想把 Antigravity 的英文界面变成中文
+- 不希望正文翻译误伤代码、命令、路径和术语
+- 想要更稳、更清晰的安装与排障说明
+
+那么 `v3.0.1` 会比 `v3.0.0` 更适合长期使用。
+
+---
+
+## 升级提醒
+
+如果你之前使用的是旧版本，并且你的安装形态实际走的是：
+
+- `resources/app.asar`
+
+那么更新后请记得：
+
+1. 重新确认当前版本实际吃哪套资源
+2. 重新放置 `translate-inject.js`
+3. 确认 `utils.js` 中仍有注入逻辑
+4. 如果走 `app.asar` 路线，重新回包覆盖
 5. 完全退出并重启 Antigravity
 
-## 适配版本
+详细步骤请查看：
 
-已确认适配：
-
-- Antigravity `2.0.11`
-
-其他版本可能可用，但未保证兼容。
-
-## 注意事项
-
-- 安装前务必备份目标应用中的 `utils.js`
-- Antigravity 更新后可能覆盖补丁，需要重新安装
-- 翻译使用 Google Translate 的非正式接口，网络不可用时动态翻译可能失效
-- 自动翻译会直接替换页面中的英文文本，不保留原文
-```
-
-## Release 正文建议
-
-创建 `v2.0.0` Release 时，可以使用以下正文：
-
-```markdown
-# Antigravity 中文自动翻译补丁 v2.0.0
-
-本版本适配 Antigravity `2.0.11`。
-
-## 更新内容
-
-- 更新自动翻译脚本
-- 扩充固定 UI 文案映射
-- 支持 `placeholder`、`title`、`aria-label` 固定文案翻译
-- 支持 `translate="no"` 跳过翻译
-- 增强 URL、域名、IP、路径、文件名、命令行片段等不可翻译文本识别
-- 优化用户要求英文回答时的逻辑：只跳过助手回复自动翻译，不全局关闭 UI 翻译
-- 更新 README 和手动安装说明
-- 新增 CHANGELOG
-
-## 下载
-
-请下载附件：
-
-- `antigravity-zh-patch-v2.0.0.zip`
-
-## 安装
-
-解压后阅读：
-
-```text
-docs/manual-install.md
-```
-
-核心文件是：
-
-```text
-patches/translate-inject.js
-```
-
-安装时需要把它复制到 Antigravity 解包后的：
-
-```text
-app-extracted/dist/translate-inject.js
-```
-
-并在目标应用的 `utils.js` 中加入注入逻辑。
-
-## 重要说明
-
-本项目不包含 Antigravity 原应用代码、安装包、二进制文件或解包后的 `dist` 目录。
-
-请使用者自行在本机合法安装的 Antigravity 客户端上进行本地补丁操作。
-
-## 风险提示
-
-- 安装前请备份 `utils.js`
-- Antigravity 更新后补丁可能失效
-- Google Translate 非正式接口可能不稳定
-- 自动翻译可能影响部分页面文本展示或复制行为
-```
+- `README.md`
+- `docs/manual-install.md`
+- `docs/troubleshooting.md`
