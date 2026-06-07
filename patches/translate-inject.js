@@ -1,5 +1,5 @@
 // 自动翻译注入脚本 — 监听页面英文文本，自动调用 Google Translate 翻译为中文
-// 排除：模型名称、专有名词、用户自己发的英文、用户要求英文回答的场景
+// 排除：模型名称、专有名词、用户自己发的英文、用户要求英文回答的场景、引号内技术文本
 (function() {
   'use strict';
   var MARKER = '__agy_tl__';
@@ -210,10 +210,66 @@
     return false;
   }
 
+  // 检测文本中是否包含不应翻译的引号内容
+  // 包括反引号、双引号、单引号包裹的技术性文本
+  function containsProtectedQuotedContent(text) {
+    if (!text) return false;
+
+    // 反引号包裹的内容：`code` — 标记为代码/技术内容，不译
+    if (/`[^`]+`/.test(text)) return true;
+
+    // 双引号/单引号包裹的内容 — 判断是否为技术性内容
+    var quotedPattern = /(["'])([^"'\n]+)\1/g;
+    var match;
+    while ((match = quotedPattern.exec(text)) !== null) {
+      var quoted = match[2].trim();
+      if (!quoted || quoted.length < 2) continue;
+
+      // 文件名（带扩展名）
+      if (/\.[a-zA-Z]{1,6}$/.test(quoted)) return true;
+
+      // 命令行（以常见 CLI 命令开头）
+      if (/^(npm|npx|pnpm|yarn|git|node|python|pip|curl|docker|kubectl|ssh|scp|gh|claude|asar|powershell|pwsh|cmd|brew|apt|choco|wget|make|gcc|g\+\+|cargo|rustc|go|java|javac)\b/i.test(quoted)) return true;
+
+      // 路径（绝对路径或相对路径）
+      if (/^([a-zA-Z]:[\\/]|[~\/]|\.\.?\/|\/)/.test(quoted)) return true;
+      if (/^[\w.-]+[\\/][\w.-]+/.test(quoted)) return true;
+
+      // URL 或域名
+      if (/^(https?:\/\/|www\.|ftp:\/\/)/i.test(quoted)) return true;
+
+      // IP 地址（含端口）
+      if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(quoted)) return true;
+
+      // 代码片段（含括号、等号等特殊字符）
+      if (/[(){}=<>\[\];&|]/.test(quoted)) return true;
+
+      // 驼峰命名标识符（camelCase）
+      if (/^[a-z]+[A-Z][a-zA-Z0-9]*$/.test(quoted)) return true;
+
+      // 下划线命名标识符（snake_case）
+      if (/^[a-z0-9]+(_[a-z0-9]+)+$/.test(quoted)) return true;
+
+      // 带命令行 flag 的参数（--xxx 或 -x 格式）
+      if (/\s--?[a-zA-Z]/.test(quoted)) return true;
+
+      // 技术性特殊字符开头（@、#、$）
+      if (/^[@#$]/.test(quoted)) return true;
+
+      // 全大写缩写（技术术语）
+      if (/^[A-Z]{2,}$/.test(quoted) && quoted.length <= 10) return true;
+    }
+
+    return false;
+  }
+
   function isNonTranslatableText(text) {
     if (!text) return false;
     var t = text.trim();
     if (!t) return false;
+
+    // 包含反引号/引号中的技术内容，不译
+    if (containsProtectedQuotedContent(t)) return true;
 
     // 邮箱、URL、域名、IP、localhost 不译
     if (/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(t)) return true;
