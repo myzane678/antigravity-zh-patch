@@ -1,12 +1,14 @@
-# Antigravity 中文自动翻译补丁
+# Antigravity 中文界面补丁
 
-这是一个用于 Antigravity 本地客户端的中文自动翻译补丁。
+这是一个用于 Antigravity 本地客户端的中文界面补丁。
 
-它会在页面加载完成后注入翻译脚本，将部分英文界面文案和英文回复自动翻译为中文。
+它会在页面加载完成后注入脚本，把常见英文界面文案翻译为中文。
+
+> 当前版本定位：**优先翻译 UI，不翻译用户与 AI 对话正文。**
 
 ## 当前版本
 
-- 补丁版本：`v3.0.0`
+- 补丁版本：`v3.0.1`
 - 已确认适配：Antigravity `2.0.11`
 - 核心文件：
   - `patches/translate-inject.js`
@@ -14,16 +16,22 @@
 
 ## 功能
 
-- 自动翻译英文 UI 文案
-- 自动翻译页面中新增的英文文本
+- 翻译固定英文 UI 文案
+- 翻译页面中新增的固定 UI 文本节点
 - 翻译 `placeholder`、`title`、`aria-label` 中的固定 UI 文案
-- 跳过用户自己输入的消息
-- 跳过输入框、可编辑区域
 - 跳过 `translate="no"` 标记区域
-- 跳过模型名称、专有名词、URL、文件路径、命令行片段和疑似代码片段
-- 跳过反引号、双引号、单引号中包裹的技术文本（文件名、命令、路径、代码标识符等）
-- 当用户明确要求英文回答时，只暂停助手回复的自动翻译
-- 对常见固定 UI 文案使用本地映射，减少翻译请求
+- 不翻译用户消息正文
+- 不翻译 AI 回复正文
+- 使用本地 UI 文案映射，不依赖在线翻译接口
+
+## v3.0.1 更新重点
+
+- 产品定位收缩为“中文界面补丁”，优先翻译 UI，不翻译对话正文
+- 移除正文自动翻译与在线翻译请求逻辑，降低误翻译风险
+- 继续强化 `app-extracted/dist` 与 `resources/app.asar` 两种安装形态说明
+- 增加更明确的安装成功自检清单
+- 新增独立排障文档 `docs/troubleshooting.md`
+- 按类别整理 `UI_TEXT_MAP`，降低后续维护成本
 
 ## v3.0.0 更新重点
 
@@ -51,6 +59,7 @@
 详细步骤见：
 
 - [docs/manual-install.md](docs/manual-install.md)
+- [docs/troubleshooting.md](docs/troubleshooting.md)
 
 ## 先看这个：5 条避坑清单
 
@@ -113,6 +122,46 @@ resources/app.asar
 
 如果你改了 `app-extracted/dist` 不生效，就应该继续排查 `resources/app.asar`。
 
+## 安装成功自检清单
+
+安装完成后，请至少检查以下几项：
+
+1. 目标 `dist` 目录里同时存在：
+
+```text
+utils.js
+translate-inject.js
+```
+
+2. `utils.js` 中能搜到：
+
+```text
+translate-inject.js
+executeJavaScript
+did-finish-load
+```
+
+3. 如果你走的是 `app.asar` 路线，确认修改后的内容已经**重新打包覆盖回**：
+
+```text
+resources/app.asar
+```
+
+4. 已经**完全退出并重新打开** Antigravity，而不是只关闭窗口。
+
+5. 重启后，以下固定 UI 文案能看到中文，例如：
+
+```text
+New Conversation -> 新建对话
+Settings -> 设置
+Permissions -> 权限
+Ask anything, @ to mention, / for actions -> 提出任何问题，@提及，/采取行动
+```
+
+如果以上检查都没问题但仍不生效，请继续看：
+
+- [docs/troubleshooting.md](docs/troubleshooting.md)
+
 ## 本机实测补充
 
 至少有一种安装形态下，虽然下面这个路径存在：
@@ -142,7 +191,7 @@ C:\Users\<你的用户名>\AppData\Local\Programs\antigravity\resources\app.asar
 
 详细卸载步骤见：
 
-- [docs/manual-install.md#卸载](docs/manual-install.md#卸载)
+- [docs/manual-install.md#卸载--回滚](docs/manual-install.md#卸载--回滚)
 
 ## 风险说明
 
@@ -152,8 +201,7 @@ C:\Users\<你的用户名>\AppData\Local\Programs\antigravity\resources\app.asar
 
 - 安装前务必备份原文件（`utils.js` 或 `app.asar`）
 - Antigravity 更新后补丁可能失效
-- 翻译使用 Google Translate 的非正式接口，可能不稳定
-- 自动翻译可能影响页面布局或复制文本内容
+- 自动翻译仅针对固定 UI 文案，不保证覆盖所有界面文本
 - 不保证适配所有版本或所有安装形态
 
 ## 版本记录
