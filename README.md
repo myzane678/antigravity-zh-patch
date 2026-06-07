@@ -32,16 +32,6 @@
 - 双引号/单引号中的技术内容（文件名、命令行、路径、URL、代码片段、标识符等）跳过翻译
 - 12 条检测规则覆盖：文件名、CLI 命令、路径、URL、IP、代码片段、camelCase/snake_case 标识符、命令行 flag、技术缩写等
 
-## v2.0.0 更新重点
-
-- 适配 Antigravity `2.0.11`
-- 扩充固定 UI 文案映射
-- 增加 `Project Initialization and Setup`、`Initial Greeting and Setup` 等常见文案
-- 增强不可翻译内容识别，包括邮箱、域名、IP、路径、文件名、命令行片段等
-- 支持固定文案属性翻译：`placeholder`、`title`、`aria-label`
-- 支持 `translate=”no”` 跳过翻译
-- 优化”用户要求英文回答”逻辑：只跳过助手回复，不影响普通 UI 文案映射
-
 ## 本项目不包含什么
 
 本项目不包含 Antigravity 原应用代码、资源文件或二进制文件。
@@ -60,19 +50,32 @@
 
 详细步骤见：
 
-[docs/manual-install.md](docs/manual-install.md)
+- [docs/manual-install.md](docs/manual-install.md)
+
+## 先看这个：5 条避坑清单
+
+1. **不要只看“目录像不像说明”，要看改完是否真的生效。**
+2. **不要把 `Antigravity.exe` 所在目录当成补丁文件落点。** 真正要改的是程序实际加载的资源。
+3. **不要只复制 `translate-inject.js` 不改 `utils.js`。** 脚本本体和注入入口缺一不可。
+4. **不要只解包不回包。** 如果你的版本实际吃 `app.asar`，改完临时解包目录还不够，必须重新打包回去。
+5. **不要只关窗口就算重启。** 一定要彻底退出 Antigravity 进程后再重新打开。
 
 ## 路径说明
 
 不要照抄作者本机路径。
 
-你需要找到自己机器上的 Antigravity 解包目录，目标目录通常叫：
+文档中的路径只用于帮助你开始排查，**不是保证所有机器都生效的固定答案**。
+
+你需要找到自己机器上 **真正被程序加载** 的资源位置。常见情况有两种：
+
+### 情况 A：运行时解包目录
+目标目录通常叫：
 
 ```text
 app-extracted/dist
 ```
 
-判断找对目录的标准是里面存在：
+判断标准之一是里面存在：
 
 ```text
 utils.js
@@ -85,33 +88,73 @@ Windows: %USERPROFILE%\.gemini\antigravity\app-extracted\dist
 macOS/Linux: ~/.gemini/antigravity/app-extracted/dist
 ```
 
-如果你的安装位置不同，以你自己的实际目录为准。
+### 情况 B：安装目录里的 `resources/app.asar`
+有些安装形态下，程序实际加载的是安装目录中的：
+
+```text
+resources/app.asar
+```
+
+这时需要：
+
+1. 先解包 `app.asar`
+2. 在解包后的 `dist/` 中放入 `translate-inject.js`
+3. 修改同目录 `utils.js` 加入注入逻辑
+4. 再重新打包覆盖回 `app.asar`
+
+### 如何判断哪种情况适合你
+不要只凭“看起来像目标目录”就直接修改。
+
+正确原则是：
+
+- 先找包含 `utils.js` 的候选目录
+- 再确认程序实际是不是吃这套资源
+- **最终以“改完并重启后是否生效”为准**
+
+如果你改了 `app-extracted/dist` 不生效，就应该继续排查 `resources/app.asar`。
+
+## 本机实测补充
+
+至少有一种安装形态下，虽然下面这个路径存在：
+
+```text
+%USERPROFILE%\.gemini\antigravity\app-extracted\dist
+```
+
+但它**不是主生效路径**。
+
+实测有效的是：
+
+```text
+C:\Users\<你的用户名>\AppData\Local\Programs\antigravity\resources\app.asar
+```
+
+也就是说：
+
+- `Antigravity.exe` 是启动入口
+- `resources/app.asar` 可能才是真正需要修改的主资源包
+
+所以如果你按常见 `.gemini/.../app-extracted/dist` 路径安装后不生效，不要立刻怀疑脚本本身有问题，先排查当前版本是否实际吃 `app.asar`。
 
 ## 卸载
 
-如果安装前备份了 `utils.js`，将备份文件恢复即可。
-
-同时删除目标目录里的：
-
-```text
-translate-inject.js
-```
+如果安装前备份了原文件，恢复备份即可。
 
 详细卸载步骤见：
 
-[docs/manual-install.md](docs/manual-install.md#卸载)
+- [docs/manual-install.md#卸载](docs/manual-install.md#卸载)
 
 ## 风险说明
 
-这是一个本地补丁工具，会修改你本机已安装应用的解包文件。
+这是一个本地补丁工具，会修改你本机已安装应用的资源文件。
 
 使用前请注意：
 
-- 安装前务必备份 `utils.js`
+- 安装前务必备份原文件（`utils.js` 或 `app.asar`）
 - Antigravity 更新后补丁可能失效
 - 翻译使用 Google Translate 的非正式接口，可能不稳定
 - 自动翻译可能影响页面布局或复制文本内容
-- 不保证适配所有版本
+- 不保证适配所有版本或所有安装形态
 
 ## 版本记录
 
