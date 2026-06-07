@@ -1,10 +1,10 @@
 # 手动安装说明
 
-本文说明如何手动安装 Antigravity 中文自动翻译补丁。
+本文说明如何手动安装 Antigravity 中文界面补丁。
 
 ## 适配版本
 
-当前补丁版本：`v3.0.0`
+当前补丁版本：`v3.0.1`
 
 已确认适配：
 
@@ -23,11 +23,13 @@ Antigravity 2.0.11
 本补丁的最小闭环是：
 
 ```text
-translate-inject.js  # 翻译脚本本体
+translate-inject.js  # 界面翻译脚本本体
 utils.js             # 负责把翻译脚本注入页面
 ```
 
 缺少任意一个，补丁都不会生效。
+
+> 当前版本定位：**优先翻译 UI，不翻译用户与 AI 对话正文。**
 
 ## 先看这个：5 条避坑清单
 
@@ -121,6 +123,10 @@ utils.js
 然后再以**改完并完全重启后是否真的生效**作为最终判断标准。
 
 如果你改了 `app-extracted/dist` 这一路仍不生效，就继续排查 `resources/app.asar`。
+
+如果你需要更系统地排查，请继续看：
+
+- [docs/troubleshooting.md](troubleshooting.md)
 
 ## 第三步：备份原文件
 
@@ -235,11 +241,11 @@ win.webContents.on('did-finish-load', () => {
 - 只关闭窗口不一定够
 - 要确保整个进程都退出了
 
-如果页面中的英文 UI 或英文回复被翻译为中文，说明补丁已经生效。
+当前版本定位是 **优先翻译 UI**。因此判断成功时，请重点观察菜单、设置、按钮、输入区提示等界面文案，而不是期待用户或 AI 对话正文被自动替换成中文。
 
-## 如何判断是否装成功
+## 安装成功自检清单
 
-可以检查以下几项：
+安装完成后，请至少检查以下几项：
 
 1. 目标 `dist` 目录里同时存在：
 
@@ -256,7 +262,15 @@ executeJavaScript
 did-finish-load
 ```
 
-3. 打开 Antigravity 后，常见 UI 文案会显示为中文，例如：
+3. 如果你走的是 `app.asar` 路线，确认修改后的内容已经**重新打包覆盖回**：
+
+```text
+resources/app.asar
+```
+
+4. 已经**完全退出并重新打开** Antigravity，而不是只关闭窗口。
+
+5. 重启后，以下固定 UI 文案能看到中文，例如：
 
 ```text
 New Conversation -> 新建对话
@@ -264,6 +278,10 @@ Settings -> 设置
 Permissions -> 权限
 Ask anything, @ to mention, / for actions -> 提出任何问题，@提及，/采取行动
 ```
+
+如果以上检查都没问题但仍不生效，请继续看：
+
+- [docs/troubleshooting.md](troubleshooting.md)
 
 ## 卸载 / 回滚
 
@@ -369,6 +387,10 @@ resources/app.asar
 
 请继续沿着 `app.asar` 这一路排查。
 
+更详细的排障步骤见：
+
+- [docs/troubleshooting.md](troubleshooting.md)
+
 ### 更新后失效怎么办？
 
 Antigravity 更新后可能覆盖：
@@ -386,10 +408,14 @@ Antigravity 更新后可能覆盖：
 2. `utils.js` 是否已经加入注入逻辑
 3. 如果你改的是 `app.asar`，是否已经重新打包覆盖回去
 4. 是否已经完全重启 Antigravity
-5. 当前网络是否可以访问 Google Translate 接口
+5. 当前版本是否已经把固定 UI 文案翻译为中文
 
-### 会不会保留原英文？
+如果以上都确认无误，再去看：
 
-当前版本会直接把符合条件的英文文本节点替换为中文，不保留原英文。
+- [docs/troubleshooting.md](troubleshooting.md)
 
-如果后续遇到页面逻辑依赖原英文文本的问题，可以再改成追加翻译、悬浮提示或双语显示。
+### 会不会翻译用户消息或 AI 回复正文？
+
+当前版本不会。
+
+当前版本定位是**中文界面补丁**，优先翻译菜单、设置、按钮、输入提示等固定 UI 文案，不主动翻译用户消息正文，也不主动翻译 AI 回复正文。
