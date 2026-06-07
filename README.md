@@ -2,7 +2,7 @@
 
 这是一个用于 Antigravity 本地客户端的中文界面补丁。
 
-它会在页面加载完成后注入脚本，把常见英文界面文案翻译为中文。
+它会在页面加载完成后注入脚本，把常见英文界面文案翻译为中文，优先解决界面可用性问题，而不是替代通用正文翻译器。
 
 > 当前版本定位：**优先翻译 UI，不翻译用户与 AI 对话正文。**
 
@@ -159,6 +159,25 @@ Ask anything, @ to mention, / for actions -> 提出任何问题，@提及，/采
 ```
 
 如果以上检查都没问题但仍不生效，请继续看：
+
+- [docs/troubleshooting.md](docs/troubleshooting.md)
+
+## 更新后如何快速重装补丁
+
+Antigravity 更新后，补丁可能因为以下文件被覆盖而失效：
+
+- `utils.js`
+- `resources/app.asar`
+
+这时建议按最小流程重新操作：
+
+1. 先判断当前版本更可能吃 `app-extracted/dist` 还是 `resources/app.asar`
+2. 重新放置 `translate-inject.js`
+3. 重新确认 `utils.js` 中仍有注入逻辑
+4. 如果你走的是 `app.asar` 路线，重新打包覆盖回 `resources/app.asar`
+5. 完全退出并重启 Antigravity
+
+如果你不确定当前版本吃哪套资源，请先看：
 
 - [docs/troubleshooting.md](docs/troubleshooting.md)
 
