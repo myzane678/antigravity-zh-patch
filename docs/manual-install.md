@@ -4,7 +4,7 @@
 
 ## 适配版本
 
-当前补丁版本：`v2.0.0`
+当前补丁版本：`v3.0.0`
 
 已确认适配：
 
@@ -16,13 +16,9 @@ Antigravity 2.0.11
 
 不要照抄作者本机路径。每个人的真实安装位置可能不同。
 
-你需要找到自己机器上的目标目录：
+文档中的路径只用于帮助你开始排查，**不是保证所有机器都生效的固定答案**。
 
-```text
-app-extracted/dist
-```
-
-只要这个目录里存在 `utils.js`，就可以作为补丁目标目录。
+你需要找到自己机器上 **真正被程序加载** 的目标资源位置。
 
 本补丁的最小闭环是：
 
@@ -31,7 +27,28 @@ translate-inject.js  # 翻译脚本本体
 utils.js             # 负责把翻译脚本注入页面
 ```
 
-## 第一步：找到目标 dist 目录
+缺少任意一个，补丁都不会生效。
+
+## 先看这个：5 条避坑清单
+
+1. **不要只看“目录像不像说明”，要看改完是否真的生效。**
+2. **不要把 `Antigravity.exe` 所在目录当成补丁文件落点。** 真正要改的是程序实际加载的资源。
+3. **不要只复制 `translate-inject.js` 不改 `utils.js`。** 脚本本体和注入入口缺一不可。
+4. **不要只解包不回包。** 如果你的版本实际吃 `app.asar`，改完临时解包目录还不够，必须重新打包回去。
+5. **不要只关窗口就算重启。** 一定要彻底退出 Antigravity 进程后再重新打开。
+
+## 第一步：判断你的安装形态
+
+常见有两种情况。
+
+### 情况 A：运行时解包目录
+目标目录通常叫：
+
+```text
+app-extracted/dist
+```
+
+只要这个目录里存在 `utils.js`，它就值得作为候选目标目录。
 
 常见位置如下。
 
@@ -53,14 +70,6 @@ macOS / Linux：
 ~/.gemini/antigravity/app-extracted/dist
 ```
 
-如果你的 Antigravity 不在这些位置，请以自己的实际目录为准。
-
-判断找对目录的标准：
-
-```text
-utils.js
-```
-
 建议同时能看到：
 
 ```text
@@ -68,8 +77,54 @@ preload.js
 constants.js
 ```
 
-## 第二步：备份 utils.js
+### 情况 B：安装目录里的 `resources/app.asar`
+有些安装形态下，程序实际加载的是安装目录中的：
 
+```text
+resources/app.asar
+```
+
+例如 Windows 常见启动入口：
+
+```text
+C:\Users\<你的用户名>\AppData\Local\Programs\antigravity\Antigravity.exe
+```
+
+这时真正要改的可能不是 `.gemini/.../app-extracted/dist`，而是 `app.asar` 里的 `dist/utils.js`。
+
+## 第二步：找到候选目标目录或资源包
+
+优先查找以下目标：
+
+### 候选目录 1
+
+```text
+app-extracted/dist
+```
+
+### 候选资源包 2
+
+```text
+resources/app.asar
+```
+
+### 如何判断找得对不对
+
+不要只凭“名字像”。
+
+先看是否存在：
+
+```text
+utils.js
+```
+
+然后再以**改完并完全重启后是否真的生效**作为最终判断标准。
+
+如果你改了 `app-extracted/dist` 这一路仍不生效，就继续排查 `resources/app.asar`。
+
+## 第三步：备份原文件
+
+### 如果你要改的是 `app-extracted/dist`
 在目标目录中，把：
 
 ```text
@@ -82,9 +137,22 @@ utils.js
 utils.js.bak
 ```
 
-如果后续需要卸载，可以用这个备份恢复。
+### 如果你要改的是 `resources/app.asar`
+请先备份：
 
-## 第三步：复制翻译脚本
+```text
+resources/app.asar
+```
+
+例如备份为：
+
+```text
+resources/app.asar.bak
+```
+
+如果后续需要卸载或回滚，可以直接恢复这个备份。
+
+## 第四步：复制翻译脚本
 
 把本项目中的：
 
@@ -92,10 +160,20 @@ utils.js.bak
 patches/translate-inject.js
 ```
 
-复制到你的目标目录：
+复制到你的目标 `dist` 目录中。
+
+### 情况 A：如果你改的是 `app-extracted/dist`
+复制到：
 
 ```text
 app-extracted/dist/translate-inject.js
+```
+
+### 情况 B：如果你改的是 `app.asar`
+先解包 `app.asar`，再把脚本复制到解包后的：
+
+```text
+dist/translate-inject.js
 ```
 
 复制完成后，目标目录中应该同时存在：
@@ -105,7 +183,7 @@ utils.js
 translate-inject.js
 ```
 
-## 第四步：修改 utils.js
+## 第五步：修改 utils.js
 
 打开目标目录中的：
 
@@ -137,9 +215,25 @@ win.webContents.on('did-finish-load', () => {
 
 保存文件。
 
-## 第五步：重启 Antigravity
+## 第六步：如果你修改的是 app.asar，需要重新打包
+
+如果你走的是 `resources/app.asar` 这一路，那么“解包目录里改好了”还不够。
+
+你还需要把修改后的内容：
+
+1. 重新打包为新的 `app.asar`
+2. 覆盖回安装目录中的原始 `resources/app.asar`
+
+否则程序不会自动使用你的临时解包目录。
+
+## 第七步：完全重启 Antigravity
 
 完全退出 Antigravity，然后重新打开。
+
+注意：
+
+- 只关闭窗口不一定够
+- 要确保整个进程都退出了
 
 如果页面中的英文 UI 或英文回复被翻译为中文，说明补丁已经生效。
 
@@ -147,7 +241,7 @@ win.webContents.on('did-finish-load', () => {
 
 可以检查以下几项：
 
-1. 目标目录里同时存在：
+1. 目标 `dist` 目录里同时存在：
 
 ```text
 utils.js
@@ -159,6 +253,7 @@ translate-inject.js
 ```text
 translate-inject.js
 executeJavaScript
+did-finish-load
 ```
 
 3. 打开 Antigravity 后，常见 UI 文案会显示为中文，例如：
@@ -170,10 +265,11 @@ Permissions -> 权限
 Ask anything, @ to mention, / for actions -> 提出任何问题，@提及，/采取行动
 ```
 
-## 卸载
+## 卸载 / 回滚
 
-### 有备份时
+### 情况 A：你改的是 `app-extracted/dist`
 
+#### 有备份时
 关闭 Antigravity。
 
 删除目标目录里的：
@@ -202,8 +298,7 @@ translate-inject.js
 
 重新打开 Antigravity 即可。
 
-### 没有备份时
-
+#### 没有备份时
 关闭 Antigravity。
 
 打开目标目录里的：
@@ -228,15 +323,60 @@ translate-inject.js
 
 保存后重新打开 Antigravity。
 
+### 情况 B：你改的是 `resources/app.asar`
+
+#### 有备份时
+关闭 Antigravity。
+
+把备份文件：
+
+```text
+resources/app.asar.bak
+```
+
+改回或覆盖回：
+
+```text
+resources/app.asar
+```
+
+重新打开 Antigravity 即可。
+
+#### 没有备份时
+你需要重新获取原始 `app.asar`，或重新安装对应版本客户端恢复。
+
 ## 常见问题
 
 ### 找不到 app-extracted/dist 怎么办？
 
-先搜索 `utils.js`。如果某个目录同时包含 `utils.js`、`preload.js`、`constants.js`，大概率就是目标目录。
+先搜索 `utils.js`。如果某个目录同时包含 `utils.js`、`preload.js`、`constants.js`，它就值得作为候选目标目录。
+
+同时别忘了继续排查：
+
+```text
+resources/app.asar
+```
+
+### 改了 `.gemini/.../app-extracted/dist` 还是不生效怎么办？
+
+先不要急着怀疑脚本本身。
+
+这通常意味着你的当前安装形态很可能实际吃的是：
+
+```text
+resources/app.asar
+```
+
+请继续沿着 `app.asar` 这一路排查。
 
 ### 更新后失效怎么办？
 
-Antigravity 更新后可能覆盖 `utils.js`，需要重新安装补丁。
+Antigravity 更新后可能覆盖：
+
+- `utils.js`
+- `resources/app.asar`
+
+所以补丁可能需要重新安装。
 
 ### 翻译不生效怎么办？
 
@@ -244,8 +384,9 @@ Antigravity 更新后可能覆盖 `utils.js`，需要重新安装补丁。
 
 1. `translate-inject.js` 是否放在 `utils.js` 同一目录
 2. `utils.js` 是否已经加入注入逻辑
-3. 是否已经完全重启 Antigravity
-4. 当前网络是否可以访问 Google Translate 接口
+3. 如果你改的是 `app.asar`，是否已经重新打包覆盖回去
+4. 是否已经完全重启 Antigravity
+5. 当前网络是否可以访问 Google Translate 接口
 
 ### 会不会保留原英文？
 
