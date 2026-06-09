@@ -32,18 +32,18 @@ Ask anything, @ to mention, / for actions -> 提出任何问题，@提及，/采
 
 ---
 
-## 问题 1：我改了 `.gemini/.../app-extracted/dist`，为什么不生效？
+## 问题 1：我改了 `app-extracted/dist`，为什么不生效？
 
 这是最常见的问题之一。
 
 ### 原因
-并不是所有安装形态都真正加载：
+并不是所有安装形态都真正加载某个候选：
 
 ```text
-%USERPROFILE%\.gemini\antigravity\app-extracted\dist
+app-extracted/dist
 ```
 
-有些机器虽然这个目录存在，但程序实际吃的是安装目录中的：
+有些机器虽然存在这种目录结构，但程序实际吃的是安装目录中的：
 
 ```text
 resources/app.asar
@@ -59,7 +59,7 @@ resources/app.asar
 3. `utils.js` 是否已经加入注入逻辑
 4. **改完并完全重启后是否真的生效**
 
-如果 `.gemini/.../app-extracted/dist` 改完还是没效果，就继续排查：
+如果某个候选 `app-extracted/dist` 改完还是没效果，就继续排查：
 
 ```text
 resources/app.asar
@@ -113,7 +113,7 @@ did-finish-load
 
 ### 4. 是否改对了那一套资源
 
-如果你改的是 `.gemini/...`，但程序实际吃的是 `app.asar`，那就不会生效。
+如果你改的是某个候选 `app-extracted/dist`，但程序实际吃的是 `app.asar`，那就不会生效。
 
 ---
 

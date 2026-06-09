@@ -48,7 +48,7 @@ utils.js             # 负责把翻译脚本注入页面
 常见有两种情况。
 
 ### 情况 A：运行时解包目录
-目标目录通常叫：
+目标目录通常形如：
 
 ```text
 app-extracted/dist
@@ -56,32 +56,14 @@ app-extracted/dist
 
 只要这个目录里存在 `utils.js`，它就值得作为候选目标目录。
 
-常见位置如下。
-
-Windows：
-
-```text
-%USERPROFILE%\.gemini\antigravity\app-extracted\dist
-```
-
-例如：
-
-```text
-C:\Users\Alice\.gemini\antigravity\app-extracted\dist
-```
-
-macOS / Linux：
-
-```text
-~/.gemini/antigravity/app-extracted/dist
-```
-
-建议同时能看到：
+有些安装形态下，这个候选目录里还会同时看到：
 
 ```text
 preload.js
 constants.js
 ```
+
+请在你自己的机器上寻找**实际被程序加载**的那一份 `app-extracted/dist`，不要把某个具体上级目录理解为固定答案。
 
 ### 情况 B：安装目录里的 `resources/app.asar`
 有些安装形态下，程序实际加载的是安装目录中的：
@@ -96,7 +78,7 @@ resources/app.asar
 C:\Users\<你的用户名>\AppData\Local\Programs\antigravity\Antigravity.exe
 ```
 
-这时真正要改的可能不是 `.gemini/.../app-extracted/dist`，而是 `app.asar` 里的 `dist/utils.js`。
+这时真正要改的可能不是某个候选 `app-extracted/dist`，而是 `app.asar` 里的 `dist/utils.js`。
 
 ## 第二步：找到候选目标目录或资源包
 
@@ -384,7 +366,7 @@ resources/app.asar
 resources/app.asar
 ```
 
-### 改了 `.gemini/.../app-extracted/dist` 还是不生效怎么办？
+### 改了 `app-extracted/dist` 还是不生效怎么办？
 
 先不要急着怀疑脚本本身。
 
@@ -393,6 +375,8 @@ resources/app.asar
 ```text
 resources/app.asar
 ```
+
+某些安装形态下，候选 `app-extracted/dist` 可能位于某个用户目录下，但这不是判断标准。
 
 请继续沿着 `app.asar` 这一路排查。
 

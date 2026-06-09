@@ -88,7 +88,7 @@
 你需要找到自己机器上 **真正被程序加载** 的资源位置。常见情况有两种：
 
 ### 情况 A：运行时解包目录
-目标目录通常叫：
+目标目录通常形如：
 
 ```text
 app-extracted/dist
@@ -100,12 +100,14 @@ app-extracted/dist
 utils.js
 ```
 
-常见路径：
+有些安装形态下，这个候选目录里还可能看到：
 
 ```text
-Windows: %USERPROFILE%\.gemini\antigravity\app-extracted\dist
-macOS/Linux: ~/.gemini/antigravity/app-extracted/dist
+preload.js
+constants.js
 ```
+
+请在你自己的机器上寻找**实际被程序加载**的那一份 `app-extracted/dist`，不要把某个具体上级目录理解为固定答案。
 
 ### 情况 B：安装目录里的 `resources/app.asar`
 有些安装形态下，程序实际加载的是安装目录中的：
@@ -194,13 +196,13 @@ Antigravity 更新后，补丁可能因为以下文件被覆盖而失效：
 
 ## 本机实测补充
 
-至少有一种安装形态下，虽然下面这个路径存在：
+至少有一种安装形态下，虽然存在某个形如：
 
 ```text
-%USERPROFILE%\.gemini\antigravity\app-extracted\dist
+app-extracted/dist
 ```
 
-但它**不是主生效路径**。
+的候选目录，但它**不是主生效路径**。
 
 实测有效的是：
 
@@ -213,7 +215,7 @@ C:\Users\<你的用户名>\AppData\Local\Programs\antigravity\resources\app.asar
 - `Antigravity.exe` 是启动入口
 - `resources/app.asar` 可能才是真正需要修改的主资源包
 
-所以如果你按常见 `.gemini/.../app-extracted/dist` 路径安装后不生效，不要立刻怀疑脚本本身有问题，先排查当前版本是否实际吃 `app.asar`。
+所以如果你按某个候选 `app-extracted/dist` 路径安装后不生效，不要立刻怀疑脚本本身有问题，先排查当前版本是否实际吃 `app.asar`。
 
 ## 卸载
 
