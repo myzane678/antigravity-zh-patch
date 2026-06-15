@@ -347,10 +347,66 @@
     return false;
   }
 
+  function isProjectNameNode(node) {
+    var container = node.parentElement;
+    while (container && container !== document.body) {
+      var tag = container.tagName ? container.tagName.toUpperCase() : '';
+      var role = container.getAttribute ? container.getAttribute('role') : '';
+      var className = container.className;
+      var clsStr = typeof className === 'string' ? className : (className && typeof className.baseVal === 'string' ? className.baseVal : '');
+      clsStr = clsStr.toLowerCase();
+      var id = typeof container.id === 'string' ? container.id.toLowerCase() : '';
+
+      if (tag === 'DIALOG' || role === 'dialog' || 
+          clsStr.indexOf('settings') !== -1 || clsStr.indexOf('preferences') !== -1 ||
+          id.indexOf('settings') !== -1 || id.indexOf('preferences') !== -1) {
+        break;
+      }
+      container = container.parentElement;
+    }
+    if (!container || container === document.body) return false;
+
+    var tw = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+    var textNodes = [];
+    while (tw.nextNode()) {
+      textNodes.push(tw.currentNode);
+    }
+
+    var projectsIdx = -1;
+    var sectionEndIdx = -1;
+    var targetIdx = -1;
+
+    for (var i = 0; i < textNodes.length; i++) {
+      var t = textNodes[i].textContent.trim();
+      if (t === 'Projects' || t === '项目') {
+        projectsIdx = i;
+      } else if (
+        t === 'Not in Project' || t === '不在项目中' ||
+        t === 'Shortcuts' || t === '快捷键' ||
+        t === 'Provide Feedback' || t === '提供反馈'
+      ) {
+        if (projectsIdx !== -1 && sectionEndIdx === -1) {
+          sectionEndIdx = i;
+        }
+      }
+      if (textNodes[i] === node) {
+        targetIdx = i;
+      }
+    }
+
+    if (projectsIdx !== -1 && sectionEndIdx !== -1) {
+      if (targetIdx > projectsIdx && targetIdx < sectionEndIdx) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function walk(root) {
     var tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode: function(n) {
         if (hasNoTranslate(n)) return NodeFilter.FILTER_REJECT;
+        if (isProjectNameNode(n)) return NodeFilter.FILTER_SKIP;
         var text = n.textContent;
         // 静态字典或本地缓存匹配任意地方；在线翻译仅限于设置/弹窗内
         return (getTranslationSync(text) || (shouldTranslateOnline(text) && isInsideSettings(n)))
@@ -365,6 +421,7 @@
 
   function translateTextNode(node) {
     if (!node || !node.parentNode) return;
+    if (isProjectNameNode(node)) return;
     var text = node.textContent;
     // 1. 同步翻译（静态字典 + 本地缓存）
     var mapped = getTranslationSync(text);
