@@ -86,6 +86,9 @@
     'Notifications': '通知',
     'Notification Settings': '通知设置',
     'Model Credits': '模型额度',
+    'Model Quota': '模型额度',
+    'Gemini models': 'Gemini 模型',
+    'Claude and GPT models': 'Claude 和 GPT 模型',
     'Enable AI Credit Overages': '启用 AI 额度超额使用',
 
     // 主题与外观
@@ -113,6 +116,7 @@
     'Configure AI models and view your quota.': '配置 AI 模型并查看您的额度。',
     'When toggled on, Antigravity will use your AI credits to fulfill model requests once you\'re out of model quota. Antigravity will always use your model quota first before using AI credits.': '启用后，当您的模型额度用尽时，Antigravity 将使用您的 AI 额度来完成模型请求。在使用 AI 额度之前，Antigravity 始终会优先使用您的模型额度。',
     'View your available model quota and AI credits. Model quota refreshes periodically based on your plan. Enable AI Credit Overages to continue using models when your quota is exhausted.': '查看您可用的模型额度和 AI 额度。模型额度会根据您的套餐定期刷新。启用 AI 额度超额使用后，在模型额度耗尽时仍可继续使用模型。',
+    'Within each group, models share a weekly limit and a 5-hour limit. Quota is consumed proportionally to the cost of the tokens. Thus, limits will last longer with shorter tasks or using more cost-effective models. The 5-hour limit smooths out aggregate demand to fairly distribute global capacity across all users, while your weekly limit is tied directly to your individual tier.': '在每个分组中，各模型共享每周额度和 5 小时额度。额度消耗与 Token 消耗成本成正比。因此，任务较短或使用更具性价比的模型时，额度使用时间会更长。5 小时额度限制用于平滑总体需求，从而在所有用户之间公平分配全球算力，而您的每周额度限制则直接与您的个人等级绑定。',
     'Manage your plan, credentials, and general preferences.': '管理您的套餐、凭据和常规偏好设置。',
     'When toggled on, Antigravity collects usage data to help Google enhance performance and features.': '启用后，Antigravity 会收集使用数据，以帮助 Google 改进性能和功能。',
     'Receive product updates, tips, and promotions from Google Antigravity via email.': '通过电子邮件接收来自 Google Antigravity 的产品更新、技巧和推广信息。',
