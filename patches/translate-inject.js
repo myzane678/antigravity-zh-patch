@@ -148,7 +148,12 @@
     'Ask anything, @ to mention, / for actions': '提出任何问题，@提及，/采取行动',
     'to navigate': '导航',
     'to select': '选择',
-    'to close': '关闭'
+    'to close': '关闭',
+    'Add Context': '添加上下文',
+    'Media': '媒体',
+    'Mentions': '提及',
+    'Actions': '行动',
+    'Browser': '浏览器'
   };
 
   function getMappedText(text) {
@@ -171,17 +176,20 @@
     return null;
   }
 
-  function getTranslationSync(text) {
+  function getTranslationSync(text, node) {
     if (!text) return null;
     var t = text.trim();
-    // 1. 尝试匹配静态字典
+    // 1. 尝试匹配静态字典 (任何地方均可生效)
     var mapped = getMappedText(t);
     if (mapped) return mapped;
-    // 2. 尝试从 LocalStorage 读取缓存
-    try {
-      var cached = localStorage.getItem('ag_zh_' + t);
-      if (cached) return cached;
-    } catch (e) {}
+    
+    // 2. 尝试从 LocalStorage 读取缓存 (仅限制在设置面板内)
+    if (node && isInsideSettings(node)) {
+      try {
+        var cached = localStorage.getItem('ag_zh_' + t);
+        if (cached) return cached;
+      } catch (e) {}
+    }
     return null;
   }
 
@@ -301,45 +309,18 @@
   function isInsideSettings(node) {
     var el = node.nodeType === 3 ? node.parentElement : node;
     while (el && el !== document.body) {
-      // 1. 标签检查
-      var tag = el.tagName ? el.tagName.toUpperCase() : '';
-      if (tag === 'DIALOG') return true;
-
-      // 2. role 属性检查
-      var role = el.getAttribute ? el.getAttribute('role') : '';
-      if (role === 'dialog' || role === 'menu') return true;
-
-      // 3. 类名与 ID 包含关键字匹配
       var className = el.className;
-      if (className) {
-        var clsStr = '';
-        if (typeof className === 'string') {
-          clsStr = className;
-        } else if (typeof className.baseVal === 'string') {
-          clsStr = className.baseVal;
-        }
-        clsStr = clsStr.toLowerCase();
-        if (clsStr.indexOf('settings') !== -1 || 
-            clsStr.indexOf('modal') !== -1 || 
-            clsStr.indexOf('dialog') !== -1 || 
-            clsStr.indexOf('popup') !== -1 || 
-            clsStr.indexOf('overlay') !== -1 ||
-            clsStr.indexOf('preferences') !== -1) {
-          return true;
-        }
-      }
+      var clsStr = typeof className === 'string' ? className : (className && typeof className.baseVal === 'string' ? className.baseVal : '');
+      clsStr = clsStr.toLowerCase();
 
-      var id = el.id;
-      if (typeof id === 'string') {
-        var idLower = id.toLowerCase();
-        if (idLower.indexOf('settings') !== -1 || 
-            idLower.indexOf('modal') !== -1 || 
-            idLower.indexOf('dialog') !== -1 || 
-            idLower.indexOf('popup') !== -1 || 
-            idLower.indexOf('overlay') !== -1 ||
-            idLower.indexOf('preferences') !== -1) {
-          return true;
-        }
+      var id = typeof el.id === 'string' ? el.id.toLowerCase() : '';
+
+      // 仅当容器的 Class 或 ID 包含 'settings' 或 'preferences' 时，才判定为设置界面
+      if (clsStr.indexOf('settings') !== -1 || 
+          clsStr.indexOf('preferences') !== -1 ||
+          id.indexOf('settings') !== -1 || 
+          id.indexOf('preferences') !== -1) {
+        return true;
       }
 
       el = el.parentElement;
@@ -409,7 +390,7 @@
         if (isProjectNameNode(n)) return NodeFilter.FILTER_SKIP;
         var text = n.textContent;
         // 静态字典或本地缓存匹配任意地方；在线翻译仅限于设置/弹窗内
-        return (getTranslationSync(text) || (shouldTranslateOnline(text) && isInsideSettings(n)))
+        return (getTranslationSync(text, n) || (shouldTranslateOnline(text) && isInsideSettings(n)))
           ? NodeFilter.FILTER_ACCEPT
           : NodeFilter.FILTER_SKIP;
       }
@@ -424,7 +405,7 @@
     if (isProjectNameNode(node)) return;
     var text = node.textContent;
     // 1. 同步翻译（静态字典 + 本地缓存）
-    var mapped = getTranslationSync(text);
+    var mapped = getTranslationSync(text, node);
     if (mapped) {
       node.textContent = mapped;
       return;
@@ -455,7 +436,7 @@
         if (!value) continue;
         var trimmed = value.trim();
         // 1. 同步翻译
-        var syncMapped = getTranslationSync(trimmed);
+        var syncMapped = getTranslationSync(trimmed, nodes[i]);
         if (syncMapped) {
           nodes[i].setAttribute(attr, syncMapped);
         } else if (shouldTranslateOnline(trimmed) && isInsideSettings(nodes[i])) {
