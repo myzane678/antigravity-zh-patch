@@ -190,8 +190,8 @@
     var t = text.trim();
     if (t.length <= 1) return false;
 
-    // 过滤首字母为小写的项 (通常为变量名、项目名、文件名、方法名等)
-    if (/^[a-z]/.test(t)) return false;
+    // 过滤首字母为小写的项 (通常为变量名、项目名、文件名、方法名等，但包含空格的短语/长句除外)
+    if (/^[a-z]/.test(t) && t.indexOf(' ') === -1) return false;
 
     // 过滤全小写且带 - 或 _ 的项目/目录 slug 结构 (如 01-elegant-darwin)
     if ((t.indexOf('-') !== -1 || t.indexOf('_') !== -1) && t.toLowerCase() === t) return false;
@@ -199,9 +199,11 @@
     // 过滤纯数字或百分比
     if (/^\d+%?$/.test(t)) return false;
 
-    // 过滤 URL、IP 和系统路径
+    // 过滤 URL、IP 和系统路径 (斜杠仅在无空格的路径/命令中过滤)
     if (/^(https?:\/\/|www\.)/i.test(t)) return false;
-    if (/^[a-zA-Z]:\\/i.test(t) || t.indexOf('/') !== -1 || t.indexOf('\\') !== -1) return false;
+    if (/^[a-zA-Z]:\\/i.test(t)) return false;
+    if (t.indexOf('/') !== -1 && t.indexOf(' ') === -1) return false;
+    if (t.indexOf('\\') !== -1 && t.indexOf(' ') === -1) return false;
 
     // 过滤单字文件名 (如 index.js)
     if (/\.[a-zA-Z0-9]+$/.test(t) && t.indexOf(' ') === -1) return false;
