@@ -62,6 +62,11 @@ function applyPatch() {
         }
         
         let utilsContent = fs.readFileSync(utilsPath, 'utf-8');
+        
+        // 清理所有已存在的注入逻辑，防止多次运行安装积累重复代码
+        const cleanupRegex = /win\.webContents\.on\('did-finish-load'[\s\S]*?translate-inject\.js[\s\S]*?\}\);\s*/g;
+        utilsContent = utilsContent.replace(cleanupRegex, '');
+        
         const targetStr = 'void win.loadURL(url);\r\n    return win;\r\n}';
         const targetStrLF = 'void win.loadURL(url);\n    return win;\n}';
         

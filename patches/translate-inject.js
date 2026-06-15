@@ -2,6 +2,13 @@
 (function() {
   'use strict';
 
+  // 清理历史上被错误缓存的偏误翻译
+  try {
+    localStorage.removeItem('ag_zh_Gemini Models');
+    localStorage.removeItem('ag_zh_Gemini models');
+    localStorage.removeItem('ag_zh_Claude and GPT Models');
+    localStorage.removeItem('ag_zh_Claude and GPT models');
+  } catch (e) {}
 
   // ========== 固定 UI 文案映射 ==========
 
@@ -88,7 +95,9 @@
     'Model Credits': '模型额度',
     'Model Quota': '模型额度',
     'Gemini models': 'Gemini 模型',
+    'Gemini Models': 'Gemini 模型',
     'Claude and GPT models': 'Claude 和 GPT 模型',
+    'Claude and GPT Models': 'Claude 和 GPT 模型',
     'Enable AI Credit Overages': '启用 AI 额度超额使用',
 
     // 主题与外观
