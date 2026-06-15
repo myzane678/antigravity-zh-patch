@@ -14,6 +14,8 @@
     localStorage.removeItem('ag_zh_Actions');
     localStorage.removeItem('ag_zh_Browser');
     localStorage.removeItem('ag_zh_codexworkspace');
+    localStorage.removeItem('ag_zh_codex workspace');
+    localStorage.removeItem('ag_zh_codex workspace/');
   } catch (e) {}
 
   // ========== 固定 UI 文案映射 ==========
@@ -68,7 +70,6 @@
     'Appearance': '外观',
     'Models': '模型',
     'Customizations': '自定义',
-    'Browser': '浏览器',
     'App': '应用',
     'Shortcuts': '快捷键',
     'Agent Settings': '智能体设置',
@@ -154,12 +155,7 @@
     'Ask anything, @ to mention, / for actions': '提出任何问题，@提及，/采取行动',
     'to navigate': '导航',
     'to select': '选择',
-    'to close': '关闭',
-    'Add Context': '添加上下文',
-    'Media': '媒体',
-    'Mentions': '提及',
-    'Actions': '行动',
-    'Browser': '浏览器'
+    'to close': '关闭'
   };
 
   function getMappedText(text) {
@@ -315,18 +311,32 @@
   function isInsideSettings(node) {
     var el = node.nodeType === 3 ? node.parentElement : node;
     while (el && el !== document.body) {
+      var tag = el.tagName ? el.tagName.toUpperCase() : '';
+      var role = el.getAttribute ? el.getAttribute('role') : '';
       var className = el.className;
       var clsStr = typeof className === 'string' ? className : (className && typeof className.baseVal === 'string' ? className.baseVal : '');
       clsStr = clsStr.toLowerCase();
 
       var id = typeof el.id === 'string' ? el.id.toLowerCase() : '';
 
-      // 仅当容器的 Class 或 ID 包含 'settings' 或 'preferences' 时，才判定为设置界面
-      if (clsStr.indexOf('settings') !== -1 || 
-          clsStr.indexOf('preferences') !== -1 ||
-          id.indexOf('settings') !== -1 || 
-          id.indexOf('preferences') !== -1) {
-        return true;
+      // 1. 基本的容器类型与类名过滤
+      if (tag === 'DIALOG' || role === 'dialog' || 
+          clsStr.indexOf('settings') !== -1 || clsStr.indexOf('preferences') !== -1 ||
+          clsStr.indexOf('modal') !== -1 || clsStr.indexOf('dialog') !== -1 ||
+          id.indexOf('settings') !== -1 || id.indexOf('preferences') !== -1) {
+        
+        // 2. 语义校验：必须包含至少2个设置分类名称，才认定为“设置界面”，以区别于普通对话框/加号下拉菜单
+        var text = el.textContent || '';
+        var hasGeneral = text.indexOf('General') !== -1 || text.indexOf('通用') !== -1;
+        var hasPermissions = text.indexOf('Permissions') !== -1 || text.indexOf('权限') !== -1;
+        var hasAppearance = text.indexOf('Appearance') !== -1 || text.indexOf('外观') !== -1;
+        var hasModels = text.indexOf('Models') !== -1 || text.indexOf('模型') !== -1;
+        var hasBrowser = text.indexOf('Browser') !== -1 || text.indexOf('浏览器') !== -1;
+
+        var count = (hasGeneral ? 1 : 0) + (hasPermissions ? 1 : 0) + (hasAppearance ? 1 : 0) + (hasModels ? 1 : 0) + (hasBrowser ? 1 : 0);
+        if (count >= 2) {
+          return true;
+        }
       }
 
       el = el.parentElement;
@@ -334,26 +344,12 @@
     return false;
   }
 
-  function isProjectNameNode(node) {
-    var container = node.parentElement;
-    while (container && container !== document.body) {
-      var tag = container.tagName ? container.tagName.toUpperCase() : '';
-      var role = container.getAttribute ? container.getAttribute('role') : '';
-      var className = container.className;
-      var clsStr = typeof className === 'string' ? className : (className && typeof className.baseVal === 'string' ? className.baseVal : '');
-      clsStr = clsStr.toLowerCase();
-      var id = typeof container.id === 'string' ? container.id.toLowerCase() : '';
+  var activeProjects = [];
+  function updateActiveProjects() {
+    var dialog = document.querySelector('dialog, [role="dialog"], [class*="settings"], [class*="modal"]');
+    if (!dialog) return;
 
-      if (tag === 'DIALOG' || role === 'dialog' || 
-          clsStr.indexOf('settings') !== -1 || clsStr.indexOf('preferences') !== -1 ||
-          id.indexOf('settings') !== -1 || id.indexOf('preferences') !== -1) {
-        break;
-      }
-      container = container.parentElement;
-    }
-    if (!container || container === document.body) return false;
-
-    var tw = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+    var tw = document.createTreeWalker(dialog, NodeFilter.SHOW_TEXT);
     var textNodes = [];
     while (tw.nextNode()) {
       textNodes.push(tw.currentNode);
@@ -361,7 +357,6 @@
 
     var projectsIdx = -1;
     var sectionEndIdx = -1;
-    var targetIdx = -1;
 
     for (var i = 0; i < textNodes.length; i++) {
       var t = textNodes[i].textContent.trim();
@@ -374,15 +369,32 @@
       ) {
         if (projectsIdx !== -1 && sectionEndIdx === -1) {
           sectionEndIdx = i;
+          break;
         }
-      }
-      if (textNodes[i] === node) {
-        targetIdx = i;
       }
     }
 
     if (projectsIdx !== -1 && sectionEndIdx !== -1) {
-      if (targetIdx > projectsIdx && targetIdx < sectionEndIdx) {
+      var list = [];
+      for (var j = projectsIdx + 1; j < sectionEndIdx; j++) {
+        var pName = textNodes[j].textContent.trim();
+        // 保证提取的不是已翻译的中文，且长度大于 1
+        if (pName && pName.length > 1 && !/[\u4e00-\u9fa5]/.test(pName)) {
+          list.push(pName);
+        }
+      }
+      if (list.length > 0) {
+        activeProjects = list;
+      }
+    }
+  }
+
+  function isProjectNameOrPath(text) {
+    if (!text) return false;
+    var t = text.trim().toLowerCase();
+    for (var i = 0; i < activeProjects.length; i++) {
+      var pName = activeProjects[i].toLowerCase();
+      if (t === pName || t.indexOf(pName + '/') === 0 || t.indexOf(pName + '\\') === 0) {
         return true;
       }
     }
@@ -390,10 +402,11 @@
   }
 
   function walk(root) {
+    updateActiveProjects();
     var tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode: function(n) {
         if (hasNoTranslate(n)) return NodeFilter.FILTER_REJECT;
-        if (isProjectNameNode(n)) return NodeFilter.FILTER_SKIP;
+        if (isProjectNameOrPath(n.textContent)) return NodeFilter.FILTER_SKIP;
         var text = n.textContent;
         // 静态字典或本地缓存匹配任意地方；在线翻译仅限于设置/弹窗内
         return (getTranslationSync(text, n) || (shouldTranslateOnline(text) && isInsideSettings(n)))
@@ -408,7 +421,7 @@
 
   function translateTextNode(node) {
     if (!node || !node.parentNode) return;
-    if (isProjectNameNode(node)) return;
+    if (isProjectNameOrPath(node.textContent)) return;
     var text = node.textContent;
     // 1. 同步翻译（静态字典 + 本地缓存）
     var mapped = getTranslationSync(text, node);
