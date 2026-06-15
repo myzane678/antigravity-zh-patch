@@ -8,6 +8,12 @@
     localStorage.removeItem('ag_zh_Gemini models');
     localStorage.removeItem('ag_zh_Claude and GPT Models');
     localStorage.removeItem('ag_zh_Claude and GPT models');
+    localStorage.removeItem('ag_zh_Add Context');
+    localStorage.removeItem('ag_zh_Media');
+    localStorage.removeItem('ag_zh_Mentions');
+    localStorage.removeItem('ag_zh_Actions');
+    localStorage.removeItem('ag_zh_Browser');
+    localStorage.removeItem('ag_zh_codexworkspace');
   } catch (e) {}
 
   // ========== 固定 UI 文案映射 ==========
