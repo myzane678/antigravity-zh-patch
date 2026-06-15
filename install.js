@@ -16,6 +16,7 @@ try {
     fs.copyFileSync(path.join(__dirname, 'patches/translate-inject.js'), path.join(APP_DIR, 'translate-inject-backup.js'));
     fs.copyFileSync(path.join(__dirname, 'patches/translate-launcher.js'), path.join(APP_DIR, 'translate-launcher.js'));
     fs.copyFileSync(path.join(__dirname, 'patches/translate-launcher.vbs'), path.join(APP_DIR, 'translate-launcher.vbs'));
+    fs.writeFileSync(path.join(APP_DIR, 'force-patch.flag'), '1');
     console.log('汉化核心文件复制成功。');
 } catch (e) {
     console.error('复制核心文件失败:', e.message);

@@ -2,6 +2,7 @@
 (function() {
   'use strict';
 
+
   // ========== 固定 UI 文案映射 ==========
 
   var UI_TEXT_MAP = {
@@ -131,7 +132,10 @@
     'Configure allowed commands outside the sandbox.': '配置允许在沙盒外执行的命令。',
 
     // 输入区相关
-    'Ask anything, @ to mention, / for actions': '提出任何问题，@提及，/采取行动'
+    'Ask anything, @ to mention, / for actions': '提出任何问题，@提及，/采取行动',
+    'to navigate': '导航',
+    'to select': '选择',
+    'to close': '关闭'
   };
 
   function getMappedText(text) {
@@ -154,6 +158,120 @@
     return null;
   }
 
+  function getTranslationSync(text) {
+    if (!text) return null;
+    var t = text.trim();
+    // 1. 尝试匹配静态字典
+    var mapped = getMappedText(t);
+    if (mapped) return mapped;
+    // 2. 尝试从 LocalStorage 读取缓存
+    try {
+      var cached = localStorage.getItem('ag_zh_' + t);
+      if (cached) return cached;
+    } catch (e) {}
+    return null;
+  }
+
+  function shouldTranslateOnline(text) {
+    if (!text) return false;
+    var t = text.trim();
+    if (t.length <= 1) return false;
+
+    // 过滤首字母为小写的项 (通常为变量名、项目名、文件名、方法名等)
+    if (/^[a-z]/.test(t)) return false;
+
+    // 过滤全小写且带 - 或 _ 的项目/目录 slug 结构 (如 01-elegant-darwin)
+    if ((t.indexOf('-') !== -1 || t.indexOf('_') !== -1) && t.toLowerCase() === t) return false;
+
+    // 过滤纯数字或百分比
+    if (/^\d+%?$/.test(t)) return false;
+
+    // 过滤 URL、IP 和系统路径
+    if (/^(https?:\/\/|www\.)/i.test(t)) return false;
+    if (/^[a-zA-Z]:\\/i.test(t) || t.indexOf('/') !== -1 || t.indexOf('\\') !== -1) return false;
+
+    // 过滤单字文件名 (如 index.js)
+    if (/\.[a-zA-Z0-9]+$/.test(t) && t.indexOf(' ') === -1) return false;
+
+    // 过滤常见代码结构字符
+    if (t.indexOf('{') !== -1 || t.indexOf('}') !== -1 || t.indexOf('=>') !== -1 || t.indexOf('(') !== -1 || t.indexOf(')') !== -1) return false;
+
+    // 过滤单单词的 snake_case, camelCase 或大写缩写
+    if (t.indexOf(' ') === -1) {
+      if (t.indexOf('_') !== -1) return false;
+      if (t.indexOf('-') !== -1 && !/^[a-zA-Z-]+$/.test(t)) return false;
+      if (/[a-z][A-Z]/.test(t)) return false;
+      if (/^[A-Z0-9]+$/.test(t)) return false;
+    }
+
+    // 必须包含英文字母
+    if (!/[a-zA-Z]/.test(t)) return false;
+
+    // 不能包含中文
+    if (/[\u4e00-\u9fa5]/.test(t)) return false;
+
+    return true;
+  }
+
+  var inFlightPromises = {};
+
+  function translateOnline(text) {
+    if (!text) return Promise.resolve(null);
+    var t = text.trim();
+    if (inFlightPromises[t]) return inFlightPromises[t];
+
+    var promise = new Promise(function(resolve) {
+      // 1. 尝试谷歌翻译
+      var googleUrl = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=' + encodeURIComponent(t);
+      fetch(googleUrl)
+        .then(function(res) {
+          if (!res.ok) throw new Error('Google HTTP ' + res.status);
+          return res.json();
+        })
+        .then(function(json) {
+          var translated = json && json[0] && json[0][0] && json[0][0][0];
+          if (translated && translated.trim() !== t) {
+            var result = translated.trim();
+            try {
+              localStorage.setItem('ag_zh_' + t, result);
+            } catch (e) {}
+            resolve(result);
+          } else {
+            throw new Error('Google empty result');
+          }
+        })
+        .catch(function(googleErr) {
+          console.warn('Google translation failed, trying MyMemory fallback...', googleErr);
+          // 2. 谷歌翻译失败，尝试国内直连备用接口 (MyMemory API)
+          var myMemoryUrl = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(t) + '&langpair=en|zh-CN';
+          fetch(myMemoryUrl)
+            .then(function(res) {
+              if (!res.ok) throw new Error('MyMemory HTTP ' + res.status);
+              return res.json();
+            })
+            .then(function(json) {
+              var translated = json && json.responseData && json.responseData.translatedText;
+              if (translated && translated.trim() !== t && !translated.includes('MYMEMORY WARNING')) {
+                var result = translated.trim();
+                try {
+                  localStorage.setItem('ag_zh_' + t, result);
+                } catch (e) {}
+                resolve(result);
+              } else {
+                resolve(null);
+              }
+            })
+            .catch(function(myMemoryErr) {
+              console.error('All translation fallbacks failed for "' + t + '":', myMemoryErr);
+              resolve(null);
+            });
+        });
+    });
+
+    inFlightPromises[t] = promise;
+    return promise;
+  }
+
   function hasNoTranslate(node) {
     var el = node.nodeType === 3 ? node.parentElement : node;
     while (el && el !== document.body) {
@@ -165,11 +283,62 @@
     return false;
   }
 
+  function isInsideSettings(node) {
+    var el = node.nodeType === 3 ? node.parentElement : node;
+    while (el && el !== document.body) {
+      // 1. 标签检查
+      var tag = el.tagName ? el.tagName.toUpperCase() : '';
+      if (tag === 'DIALOG') return true;
+
+      // 2. role 属性检查
+      var role = el.getAttribute ? el.getAttribute('role') : '';
+      if (role === 'dialog' || role === 'menu') return true;
+
+      // 3. 类名与 ID 包含关键字匹配
+      var className = el.className;
+      if (className) {
+        var clsStr = '';
+        if (typeof className === 'string') {
+          clsStr = className;
+        } else if (typeof className.baseVal === 'string') {
+          clsStr = className.baseVal;
+        }
+        clsStr = clsStr.toLowerCase();
+        if (clsStr.indexOf('settings') !== -1 || 
+            clsStr.indexOf('modal') !== -1 || 
+            clsStr.indexOf('dialog') !== -1 || 
+            clsStr.indexOf('popup') !== -1 || 
+            clsStr.indexOf('overlay') !== -1 ||
+            clsStr.indexOf('preferences') !== -1) {
+          return true;
+        }
+      }
+
+      var id = el.id;
+      if (typeof id === 'string') {
+        var idLower = id.toLowerCase();
+        if (idLower.indexOf('settings') !== -1 || 
+            idLower.indexOf('modal') !== -1 || 
+            idLower.indexOf('dialog') !== -1 || 
+            idLower.indexOf('popup') !== -1 || 
+            idLower.indexOf('overlay') !== -1 ||
+            idLower.indexOf('preferences') !== -1) {
+          return true;
+        }
+      }
+
+      el = el.parentElement;
+    }
+    return false;
+  }
+
   function walk(root) {
     var tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode: function(n) {
         if (hasNoTranslate(n)) return NodeFilter.FILTER_REJECT;
-        return getMappedText(n.textContent)
+        var text = n.textContent;
+        // 静态字典或本地缓存匹配任意地方；在线翻译仅限于设置/弹窗内
+        return (getTranslationSync(text) || (shouldTranslateOnline(text) && isInsideSettings(n)))
           ? NodeFilter.FILTER_ACCEPT
           : NodeFilter.FILTER_SKIP;
       }
@@ -181,9 +350,22 @@
 
   function translateTextNode(node) {
     if (!node || !node.parentNode) return;
-    var mapped = getMappedText(node.textContent);
-    if (!mapped) return;
-    node.textContent = mapped;
+    var text = node.textContent;
+    // 1. 同步翻译（静态字典 + 本地缓存）
+    var mapped = getTranslationSync(text);
+    if (mapped) {
+      node.textContent = mapped;
+      return;
+    }
+    // 2. 异步翻译补漏（限制在设置/弹窗内）
+    var t = text.trim();
+    if (shouldTranslateOnline(t) && isInsideSettings(node)) {
+      translateOnline(t).then(function(translated) {
+        if (translated && node.parentNode && node.textContent === text) {
+          node.textContent = translated;
+        }
+      });
+    }
   }
 
   function translateAttrs(root) {
@@ -198,8 +380,22 @@
       for (var j = 0; j < attrs.length; j++) {
         var attr = attrs[j];
         var value = nodes[i].getAttribute && nodes[i].getAttribute(attr);
-        var mapped = value && getMappedText(value);
-        if (mapped) nodes[i].setAttribute(attr, mapped);
+        if (!value) continue;
+        var trimmed = value.trim();
+        // 1. 同步翻译
+        var syncMapped = getTranslationSync(trimmed);
+        if (syncMapped) {
+          nodes[i].setAttribute(attr, syncMapped);
+        } else if (shouldTranslateOnline(trimmed) && isInsideSettings(nodes[i])) {
+          // 2. 异步翻译（限制在设置/弹窗内）
+          (function(el, a, val, tr) {
+            translateOnline(tr).then(function(translated) {
+              if (translated && el.isConnected && el.getAttribute(a) === val) {
+                el.setAttribute(a, translated);
+              }
+            });
+          })(nodes[i], attr, value, trimmed);
+        }
       }
     }
   }
